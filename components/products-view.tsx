@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Plus, Search, Download, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,63 +18,12 @@ export interface Product {
   margin: number
 }
 
-const INITIAL_PRODUCTS: Product[] = [
-  {
-    id: "1",
-    name: "Fresh Tomatoes",
-    buyCost: 2.5,
-    sellCost: 4.99,
-    quantity: 150,
-    supplier: "Green Valley Farms",
-    category: "Vegetables",
-    margin: 99.6,
-  },
-  {
-    id: "2",
-    name: "Organic Milk",
-    buyCost: 1.8,
-    sellCost: 3.49,
-    quantity: 200,
-    supplier: "Dairy Fresh Co",
-    category: "Dairy",
-    margin: 93.9,
-  },
-  {
-    id: "3",
-    name: "Whole Wheat Bread",
-    buyCost: 1.2,
-    sellCost: 2.99,
-    quantity: 80,
-    supplier: "Artisan Bakery",
-    category: "Bakery",
-    margin: 149.2,
-  },
-  {
-    id: "4",
-    name: "Fresh Apples",
-    buyCost: 3.0,
-    sellCost: 5.99,
-    quantity: 30,
-    supplier: "Green Valley Farms",
-    category: "Fruits",
-    margin: 99.7,
-  },
-  {
-    id: "5",
-    name: "Orange Juice",
-    buyCost: 2.0,
-    sellCost: 4.49,
-    quantity: 120,
-    supplier: "Fresh Beverages Ltd",
-    category: "Beverages",
-    margin: 124.5,
-  },
-]
+// No initial products, fetch from API
 
 const CATEGORIES = ["Vegetables", "Fruits", "Dairy", "Bakery", "Beverages", "Snacks", "Other"]
-
 export function ProductsView() {
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS)
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
@@ -85,6 +34,28 @@ export function ProductsView() {
     supplier: "",
     stockStatus: "all",
   })
+
+  useEffect(() => {
+    async function fetchProducts() {
+      setLoading(true)
+      const res = await fetch('/api/products')
+      const data = await res.json()
+      setProducts(
+        data.map((p: any) => ({
+          id: p._id || p.id,
+          name: p.name,
+          buyCost: p.buy_cost ?? p.buyCost,
+          sellCost: p.sell_cost ?? p.sellCost,
+          quantity: p.quantity_on_hand ?? p.quantity,
+          supplier: p.supplier,
+          category: p.category,
+          margin: p.buy_cost ? ((p.sell_cost - p.buy_cost) / p.buy_cost) * 100 : (p.buyCost ? ((p.sellCost - p.buyCost) / p.buyCost) * 100 : 0),
+        }))
+      )
+      setLoading(false)
+    }
+    fetchProducts()
+  }, [])
 
   const filteredProducts = products.filter((p) => {
     const matchesSearch =
@@ -101,21 +72,35 @@ export function ProductsView() {
     return matchesSearch && matchesCategory && matchesSupplier && matchesStockStatus
   })
 
-  const handleAddProduct = (product: Omit<Product, "id" | "margin">) => {
-    const margin = ((product.sellCost - product.buyCost) / product.buyCost) * 100
-    if (editingId) {
-      setProducts(products.map((p) => (p.id === editingId ? { ...product, id: editingId, margin } : p)))
-      setEditingId(null)
-    } else {
-      setProducts([
-        ...products,
-        {
-          ...product,
-          id: Date.now().toString(),
-          margin,
-        },
-      ])
+  const handleAddProduct = async (product: Omit<Product, "id" | "margin">) => {
+    const payload = {
+      name: product.name,
+      buy_cost: product.buyCost,
+      sell_cost: product.sellCost,
+      quantity_on_hand: product.quantity,
+      supplier: product.supplier,
+      category: product.category,
+      sku: '',
     }
+    const res = await fetch('/api/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const data = await res.json()
+    setProducts((prev) => [
+      ...prev,
+      {
+        id: data._id || data.id,
+        name: data.name,
+        buyCost: data.buy_cost ?? data.buyCost,
+        sellCost: data.sell_cost ?? data.sellCost,
+        quantity: data.quantity_on_hand ?? data.quantity,
+        supplier: data.supplier,
+        category: data.category,
+        margin: data.buy_cost ? ((data.sell_cost - data.buy_cost) / data.buy_cost) * 100 : (data.buyCost ? ((data.sellCost - data.buyCost) / data.buyCost) * 100 : 0),
+      },
+    ])
     setShowForm(false)
   }
 
@@ -186,7 +171,9 @@ export function ProductsView() {
   const lowStockCount = products.filter((p) => p.quantity < 50 && p.quantity > 0).length
   const outOfStockCount = products.filter((p) => p.quantity === 0).length
 
-  return (
+  return loading
+    ? <div className="flex justify-center items-center h-64"><span>Loading products...</span></div>
+    : (
     <div className="p-3 sm:p-4 md:p-8 space-y-6">
       <div className="flex flex-col gap-4">
         <div>

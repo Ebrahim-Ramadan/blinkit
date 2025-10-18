@@ -1,4 +1,3 @@
-"use client"
 
 import { RecommendationsView } from "@/components/recommendations-view"
 

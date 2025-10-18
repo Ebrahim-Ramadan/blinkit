@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Trash2, MessageCircle, TrendingUp, AlertCircle, CheckCircle, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -19,73 +19,7 @@ export interface Recommendation {
   potentialRevenue?: number
 }
 
-const INITIAL_RECOMMENDATIONS: Recommendation[] = [
-  {
-    id: "1",
-    userName: "Ahmed Hassan",
-    email: "ahmed@example.com",
-    productName: "Organic Eggs",
-    message: "Would love to see organic eggs in the app. They are very popular in my area.",
-    rating: 5,
-    date: "2025-01-15",
-    status: "new",
-    priority: "high",
-    category: "Dairy",
-    potentialRevenue: 1200,
-  },
-  {
-    id: "2",
-    userName: "Fatima Mohamed",
-    email: "fatima@example.com",
-    productName: "Gluten-Free Bread",
-    message: "Please add gluten-free bread options. Many customers have dietary restrictions.",
-    rating: 4,
-    date: "2025-01-14",
-    status: "reviewed",
-    priority: "high",
-    category: "Bakery",
-    potentialRevenue: 950,
-  },
-  {
-    id: "3",
-    userName: "Omar Khalil",
-    email: "omar@example.com",
-    productName: "Fresh Juice",
-    message: "Fresh squeezed orange juice would be amazing for morning deliveries!",
-    rating: 5,
-    date: "2025-01-13",
-    status: "new",
-    priority: "medium",
-    category: "Beverages",
-    potentialRevenue: 800,
-  },
-  {
-    id: "4",
-    userName: "Layla Samir",
-    email: "layla@example.com",
-    productName: "Honey",
-    message: "Local honey from beekeepers would be a great addition.",
-    rating: 4,
-    date: "2025-01-12",
-    status: "implemented",
-    priority: "medium",
-    category: "Other",
-    potentialRevenue: 600,
-  },
-  {
-    id: "5",
-    userName: "Karim Nasser",
-    email: "karim@example.com",
-    productName: "Vegan Cheese",
-    message: "More vegan options would attract health-conscious customers.",
-    rating: 5,
-    date: "2025-01-11",
-    status: "new",
-    priority: "high",
-    category: "Dairy",
-    potentialRevenue: 1100,
-  },
-]
+// No initial recommendations, fetch from API
 
 const getPriorityColor = (priority: string) => {
   switch (priority) {
@@ -125,9 +59,34 @@ const getStatusColor = (status: string) => {
       return "bg-muted/10 text-muted-foreground"
   }
 }
-
-export function RecommendationsView() {
-  const [recommendations, setRecommendations] = useState<Recommendation[]>(INITIAL_RECOMMENDATIONS)
+export function RecommendationsView(): JSX.Element {
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([])
+  const [loading, setLoading] = useState(true)
+  // Fetch recommendations from API
+  useEffect(() => {
+    async function fetchRecommendations() {
+      setLoading(true)
+      const res = await fetch('/api/recommendations')
+      const data = await res.json()
+      setRecommendations(
+        data.map((r: any) => ({
+          id: r._id || r.id,
+          userName: r.user_name ?? r.userName,
+          email: r.email,
+          productName: r.product_suggestion ?? r.productName,
+          message: r.message,
+          rating: r.rating ?? 5,
+          date: r.created_at ? new Date(r.created_at).toISOString().slice(0, 10) : r.date,
+          status: r.status ?? "new",
+          priority: r.priority ?? "medium",
+          category: r.category ?? "Other",
+          potentialRevenue: r.potentialRevenue ?? 0,
+        }))
+      )
+      setLoading(false)
+    }
+    fetchRecommendations()
+  }, [])
   const [filter, setFilter] = useState<"all" | "new" | "reviewed" | "implemented">("all")
   const [sortBy, setSortBy] = useState<"priority" | "revenue" | "rating" | "date">("priority")
 
@@ -152,11 +111,13 @@ export function RecommendationsView() {
     }
   })
 
-  const handleStatusChange = (id: string, status: Recommendation["status"]) => {
+  const handleStatusChange = async (id: string, status: Recommendation["status"]) => {
+    // Optionally, update status in backend if supported
     setRecommendations(recommendations.map((r) => (r.id === id ? { ...r, status } : r)))
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    await fetch(`/api/recommendations/${id}`, { method: 'DELETE' })
     setRecommendations(recommendations.filter((r) => r.id !== id))
   }
 
@@ -167,6 +128,10 @@ export function RecommendationsView() {
     implemented: recommendations.filter((r) => r.status === "implemented").length,
     totalPotentialRevenue: recommendations.reduce((sum, r) => sum + (r.potentialRevenue || 0), 0),
     highPriority: recommendations.filter((r) => r.priority === "high").length,
+  }
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-64"><span>Loading recommendations...</span></div>
   }
 
   return (
