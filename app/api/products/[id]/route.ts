@@ -4,7 +4,8 @@ import clientPromise from '@/lib/mongodb'
 
 // GET one, UPDATE, DELETE product by id
 
-export async function GET(context: { params: { id: string } }) {
+
+export async function GET(req: NextRequest, context: { params: { id: string } }) {
   const client = await clientPromise
   const db = client.db('grocery_admin')
   const product = await db.collection('products').findOne({ _id: new ObjectId(context.params.id) })
@@ -25,7 +26,8 @@ export async function PUT(req: NextRequest, context: { params: { id: string } })
 }
 
 
-export async function DELETE(context: { params: { id: string } }) {
+
+export async function DELETE(req: NextRequest, context: { params: { id: string } }) {
   const client = await clientPromise
   const db = client.db('grocery_admin')
   const result = await db.collection('products').deleteOne({ _id: new ObjectId(context.params.id) })
