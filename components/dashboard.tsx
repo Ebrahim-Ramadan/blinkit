@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { LayoutDashboard, Package, TrendingUp, MessageSquare, Menu, X } from "lucide-react"
 import { motion } from "framer-motion"
 import { Overview } from "./overview"
@@ -13,6 +13,36 @@ type Tab = "overview" | "products" | "suppliers" | "recommendations"
 export function Dashboard() {
   const [activeTab, setActiveTab] = useState<Tab>("overview")
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const sidebarRef = useRef<HTMLDivElement>(null)
+
+  // Keep sidebar open on md+ screens
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setSidebarOpen(true)
+      } else {
+        setSidebarOpen(false)
+      }
+    }
+    handleResize()
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
+
+  // Close sidebar on small screens when clicking outside
+  useEffect(() => {
+    if (!sidebarOpen || window.innerWidth >= 768) return
+    function handleClick(e: MouseEvent) {
+      if (
+        sidebarRef.current &&
+        !sidebarRef.current.contains(e.target as Node)
+      ) {
+        setSidebarOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [sidebarOpen])
 
   const navItems = [
     { id: "overview" as Tab, label: "Overview", icon: LayoutDashboard },
@@ -23,12 +53,12 @@ export function Dashboard() {
 
   const sidebarVariants = {
     hidden: { x: -256 },
-    visible: { x: 0, transition: { duration: 0.3, ease: "easeInOut" } },
+    visible: { x: 0, transition: { duration: 0.3, ease: "easeInOut" as const } },
   }
 
   const contentVariants = {
     hidden: { opacity: 0, y: 10 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
   }
 
   const navItemVariants = {
@@ -43,7 +73,12 @@ export function Dashboard() {
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
+      {/* Overlay for small screens */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-40 bg-black/30 md:hidden" aria-hidden="true"></div>
+      )}
       <motion.aside
+        ref={sidebarRef}
         initial={false}
         animate={sidebarOpen ? "visible" : "hidden"}
         variants={sidebarVariants}

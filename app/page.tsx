@@ -1,6 +1,5 @@
-"use client"
-import { Dashboard } from "@/components/dashboard"
+import { Overview } from "@/components/overview"
 
-export default function Home() {
-  return <Dashboard />
+export default function DashboardPage() {
+  return <Overview />
 }
