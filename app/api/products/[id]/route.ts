@@ -5,18 +5,19 @@ import clientPromise from '@/lib/mongodb'
 // GET one, UPDATE, DELETE product by id
 
 
-export async function GET(req: NextRequest, context: { params: { id: string } }) {
+export async function GET(request: Request, context: { params: { id: string } }) {
+  const { id } = context.params;
   const client = await clientPromise
   const db = client.db('grocery_admin')
-  const product = await db.collection('products').findOne({ _id: new ObjectId(context.params.id) })
+  const product = await db.collection('products').findOne({ _id: new ObjectId(id) })
   return NextResponse.json(product)
 }
 
 
-export async function PUT(req: NextRequest, context: { params: { id: string } }) {
+export async function PUT(request: NextRequest, context: { params: { id: string } }) {
   const client = await clientPromise
   const db = client.db('grocery_admin')
-  const data = await req.json()
+  const data = await request.json()
   const result = await db.collection('products').findOneAndUpdate(
     { _id: new ObjectId(context.params.id) },
     { $set: { ...data, updated_at: new Date() } },
@@ -27,7 +28,7 @@ export async function PUT(req: NextRequest, context: { params: { id: string } })
 
 
 
-export async function DELETE(req: NextRequest, context: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
   const client = await clientPromise
   const db = client.db('grocery_admin')
   const result = await db.collection('products').deleteOne({ _id: new ObjectId(context.params.id) })
