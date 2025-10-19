@@ -10,8 +10,8 @@ type RouteParams = {
 };
 
 // GET one product by id
-export async function GET(request: NextRequest, { params }: RouteParams) {
-  const { id } = params;
+export async function GET(request: Request, context: { params: { id: string } }) {
+  const { id } = context.params;
   const client = await clientPromise;
   const db = client.db('grocery_admin');
   const product = await db.collection('products').findOne({ _id: new ObjectId(id) });
