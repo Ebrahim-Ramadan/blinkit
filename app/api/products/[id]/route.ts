@@ -1,36 +1,40 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { ObjectId } from 'mongodb'
-import clientPromise from '@/lib/mongodb'
+import { NextRequest, NextResponse } from 'next/server';
+import { ObjectId } from 'mongodb';
+import clientPromise from '@/lib/mongodb';
 
-// GET one, UPDATE, DELETE product by id
+// Define the params type
+type RouteParams = {
+  params: {
+    id: string;
+  };
+};
 
-
-export async function GET(request: Request, context: { params: { id: string } }) {
-  const { id } = context.params;
-  const client = await clientPromise
-  const db = client.db('grocery_admin')
-  const product = await db.collection('products').findOne({ _id: new ObjectId(id) })
-  return NextResponse.json(product)
+// GET one product by id
+export async function GET(request: NextRequest, { params }: RouteParams) {
+  const { id } = params;
+  const client = await clientPromise;
+  const db = client.db('grocery_admin');
+  const product = await db.collection('products').findOne({ _id: new ObjectId(id) });
+  return NextResponse.json(product);
 }
 
-
-export async function PUT(request: NextRequest, context: { params: { id: string } }) {
-  const client = await clientPromise
-  const db = client.db('grocery_admin')
-  const data = await request.json()
+// UPDATE product by id
+export async function PUT(request: NextRequest, { params }: RouteParams) {
+  const client = await clientPromise;
+  const db = client.db('grocery_admin');
+  const data = await request.json();
   const result = await db.collection('products').findOneAndUpdate(
-    { _id: new ObjectId(context.params.id) },
+    { _id: new ObjectId(params.id) },
     { $set: { ...data, updated_at: new Date() } },
     { returnDocument: 'after' }
-  )
-  return NextResponse.json(result.value)
+  );
+  return NextResponse.json(result.value);
 }
 
-
-
-export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
-  const client = await clientPromise
-  const db = client.db('grocery_admin')
-  const result = await db.collection('products').deleteOne({ _id: new ObjectId(context.params.id) })
-  return NextResponse.json({ deleted: result.deletedCount > 0 })
+// DELETE product by id
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  const client = await clientPromise;
+  const db = client.db('grocery_admin');
+  const result = await db.collection('products').deleteOne({ _id: new ObjectId(params.id) });
+  return NextResponse.json({ deleted: result.deletedCount > 0 });
 }
